@@ -3,6 +3,7 @@ module Main exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Keyboard.Extra exposing (Key)
 
 
 ---- MODEL ----
@@ -15,7 +16,7 @@ type alias Model =
 
 initPieceInstances : List PieceInstance
 initPieceInstances =
-    [ { piece = FourSquare, coordinate = ( 5, 5 ) } ]
+    [ { piece = FourSquare, coordinate = ( 0, 0 ) } ]
 
 
 init : ( Model, Cmd Msg )
@@ -29,14 +30,81 @@ init =
 
 type Msg
     = Change String
+    | KeyDown Key
     | NoOp
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        KeyDown key ->
+            let
+                updatedModel =
+                    handleKeyPress key model
+            in
+                ( updatedModel, Cmd.none )
+
         other ->
             ( model, Cmd.none )
+
+
+type MoveDirection
+    = Right
+    | Left
+    | Down
+
+
+movePieceInstance : MoveDirection -> PieceInstance -> PieceInstance
+movePieceInstance direction pieceInstance =
+    let
+        ( xCoordinate, yCoordinate ) =
+            pieceInstance.coordinate
+
+        updatedCoordinate =
+            case direction of
+                Right ->
+                    ( xCoordinate + 1, yCoordinate )
+
+                Left ->
+                    ( xCoordinate - 1, yCoordinate )
+
+                Down ->
+                    ( xCoordinate, yCoordinate + 1 )
+    in
+        { pieceInstance | coordinate = updatedCoordinate }
+
+
+handleKeyPress : Key -> Model -> Model
+handleKeyPress key model =
+    case model.pieceInstances of
+        [] ->
+            model
+
+        activePieceInstance :: inactivePieceInstances ->
+            case key of
+                Keyboard.Extra.CharA ->
+                    let
+                        movedPieceInstance =
+                            movePieceInstance Left activePieceInstance
+                    in
+                        { model | pieceInstances = movedPieceInstance :: inactivePieceInstances }
+
+                Keyboard.Extra.CharD ->
+                    let
+                        movedPieceInstance =
+                            movePieceInstance Right activePieceInstance
+                    in
+                        { model | pieceInstances = movedPieceInstance :: inactivePieceInstances }
+
+                Keyboard.Extra.CharS ->
+                    let
+                        movedPieceInstance =
+                            movePieceInstance Down activePieceInstance
+                    in
+                        { model | pieceInstances = movedPieceInstance :: inactivePieceInstances }
+
+                other_ ->
+                    model
 
 
 
@@ -264,6 +332,13 @@ squareStyle ( xCoordinate, yCoordinate ) color columnIndex rowIndex =
     ]
 
 
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.batch
+        [ Keyboard.Extra.downs KeyDown
+        ]
+
+
 
 ---- PROGRAM ----
 
@@ -274,5 +349,5 @@ main =
         { view = view
         , init = init
         , update = update
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = subscriptions
         }
