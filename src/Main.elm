@@ -9,13 +9,18 @@ import Html.Events exposing (..)
 
 
 type alias Model =
-    { text : String
+    { pieceInstances : List PieceInstance
     }
+
+
+initPieceInstances : List PieceInstance
+initPieceInstances =
+    [ { piece = FourSquare, coordinate = ( 5, 5 ) } ]
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { text = "..." }, Cmd.none )
+    ( { pieceInstances = initPieceInstances }, Cmd.none )
 
 
 
@@ -30,9 +35,6 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Change newText ->
-            ( { model | text = newText }, Cmd.none )
-
         other ->
             ( model, Cmd.none )
 
@@ -42,11 +44,61 @@ update msg model =
 
 
 view : Model -> Html Msg
-view model =
+view { pieceInstances } =
     div []
-        [ h1 [] [ text "Doodads" ]
-        , renderPiece rightHookLayout
+        [ h1 []
+            [ text "Doodads" ]
+        , div
+            []
+            (renderPieceInstances pieceInstances)
         ]
+
+
+renderPieceInstances : List PieceInstance -> List (Html Msg)
+renderPieceInstances instances =
+    List.map renderPieceInstance instances
+
+
+renderPieceInstance : PieceInstance -> Html Msg
+renderPieceInstance { piece, coordinate } =
+    piece
+        |> pieceSpec
+        |> renderPiece coordinate
+
+
+pieceSpec : Piece -> PieceSpec
+pieceSpec piece =
+    case piece of
+        FourSquare ->
+            fourSquarePieceSpec
+
+
+type Piece
+    = FourSquare
+
+
+
+--    | LongOne
+--    | LeftNoodle
+--    | RightNoodle
+--    | LeftHook
+--    | RightHook
+--    | TriGuy
+
+
+type alias PieceInstance =
+    { piece : Piece, coordinate : Coordinate }
+
+
+type PieceColor
+    = Yellow
+    | Blue
+
+
+type alias PieceSpec =
+    { layout : PieceLayout
+    , color : PieceColor
+    }
 
 
 type CellState
@@ -58,7 +110,7 @@ type alias Row =
     List CellState
 
 
-type alias Layout =
+type alias PieceLayout =
     List Row
 
 
@@ -70,7 +122,7 @@ type alias Grid =
     List Coordinate
 
 
-fourSquareLayout : Layout
+fourSquareLayout : PieceLayout
 fourSquareLayout =
     [ [ NotFilled, NotFilled, NotFilled, NotFilled ]
     , [ NotFilled, Filled, Filled, NotFilled ]
@@ -79,7 +131,14 @@ fourSquareLayout =
     ]
 
 
-longOneLayout : Layout
+fourSquarePieceSpec : PieceSpec
+fourSquarePieceSpec =
+    { color = Yellow
+    , layout = fourSquareLayout
+    }
+
+
+longOneLayout : PieceLayout
 longOneLayout =
     [ [ NotFilled, Filled, NotFilled, NotFilled ]
     , [ NotFilled, Filled, NotFilled, NotFilled ]
@@ -88,7 +147,7 @@ longOneLayout =
     ]
 
 
-leftNoodleLayout : Layout
+leftNoodleLayout : PieceLayout
 leftNoodleLayout =
     [ [ NotFilled, NotFilled, NotFilled, NotFilled ]
     , [ NotFilled, Filled, NotFilled, NotFilled ]
@@ -97,7 +156,7 @@ leftNoodleLayout =
     ]
 
 
-rightNoodleLayout : Layout
+rightNoodleLayout : PieceLayout
 rightNoodleLayout =
     [ [ NotFilled, NotFilled, NotFilled, NotFilled ]
     , [ NotFilled, NotFilled, Filled, NotFilled ]
@@ -106,7 +165,7 @@ rightNoodleLayout =
     ]
 
 
-leftHookLayout : Layout
+leftHookLayout : PieceLayout
 leftHookLayout =
     [ [ NotFilled, NotFilled, NotFilled, NotFilled ]
     , [ NotFilled, Filled, Filled, NotFilled ]
@@ -115,7 +174,7 @@ leftHookLayout =
     ]
 
 
-rightHookLayout : Layout
+rightHookLayout : PieceLayout
 rightHookLayout =
     [ [ NotFilled, NotFilled, NotFilled, NotFilled ]
     , [ NotFilled, Filled, Filled, NotFilled ]
@@ -124,7 +183,7 @@ rightHookLayout =
     ]
 
 
-triGuyLayout : Layout
+triGuyLayout : PieceLayout
 triGuyLayout =
     [ [ NotFilled, NotFilled, NotFilled, NotFilled ]
     , [ NotFilled, NotFilled, NotFilled, NotFilled ]
@@ -153,31 +212,31 @@ flattenRow ( rowIndex, row ) =
         |> List.map coordinatize
 
 
-layoutToGrid : Layout -> Grid
+layoutToGrid : PieceLayout -> Grid
 layoutToGrid layout =
     layout
         |> List.indexedMap (,)
         |> List.concatMap flattenRow
 
 
-renderPiece : Layout -> Html Msg
-renderPiece layout =
+renderPiece : Coordinate -> PieceSpec -> Html Msg
+renderPiece coordinate { layout, color } =
     layout
         |> layoutToGrid
-        |> renderGrid
+        |> renderGrid coordinate color
 
 
-renderGrid : Grid -> Html Msg
-renderGrid grid =
+renderGrid : Coordinate -> PieceColor -> Grid -> Html Msg
+renderGrid coordinate color grid =
     div []
         (List.map
-            renderSauare
+            (renderSquare coordinate color)
             grid
         )
 
 
-renderSauare ( rowIndex, columnIndex ) =
-    div [ class "square", style (squareStyle rowIndex columnIndex) ] []
+renderSquare coordinate color ( rowIndex, columnIndex ) =
+    div [ class "square", style (squareStyle coordinate color rowIndex columnIndex) ] []
 
 
 toPixels integer =
@@ -188,9 +247,20 @@ toPixels integer =
         string ++ "px"
 
 
-squareStyle columnIndex rowIndex =
-    [ ( "left", rowIndex * 33 |> toPixels )
-    , ( "top", columnIndex * 33 |> toPixels )
+pieceColorCode : PieceColor -> String
+pieceColorCode color =
+    case color of
+        Yellow ->
+            "yellow"
+
+        other_ ->
+            "white"
+
+
+squareStyle ( xCoordinate, yCoordinate ) color columnIndex rowIndex =
+    [ ( "left", (rowIndex + xCoordinate) * 33 |> toPixels )
+    , ( "top", (columnIndex + yCoordinate) * 33 |> toPixels )
+    , ( "background-color", pieceColorCode color )
     ]
 
 
