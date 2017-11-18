@@ -16,7 +16,14 @@ type alias Model =
 
 initPieceInstances : List PieceInstance
 initPieceInstances =
-    [ { piece = FourSquare, coordinate = ( 0, 0 ) } ]
+    [ { piece = FourSquare, coordinate = ( 0, 0 ) }
+    , { piece = LongOne, coordinate = ( 3, 1 ) }
+    , { piece = LeftNoodle, coordinate = ( 0, 3 ) }
+    , { piece = RightNoodle, coordinate = ( 5, 0 ) }
+    , { piece = LeftHook, coordinate = ( 7, 3 ) }
+    , { piece = RightHook, coordinate = ( 3, 5 ) }
+    , { piece = TriGuy, coordinate = ( 5, 5 ) }
+    ]
 
 
 init : ( Model, Cmd Msg )
@@ -140,13 +147,36 @@ pieceSpec piece =
         FourSquare ->
             fourSquarePieceSpec
 
+        LongOne ->
+            longOnePieceSpec
+
+        LeftNoodle ->
+            leftNoodlePieceSpec
+
+        RightNoodle ->
+            rightNoodlePieceSpec
+
+        LeftHook ->
+            leftHookPieceSpec
+
+        RightHook ->
+            rightHookPieceSpec
+
+        TriGuy ->
+            triGuyPieceSpec
+
 
 type Piece
     = FourSquare
+    | LongOne
+    | LeftNoodle
+    | RightNoodle
+    | LeftHook
+    | RightHook
+    | TriGuy
 
 
 
---    | LongOne
 --    | LeftNoodle
 --    | RightNoodle
 --    | LeftHook
@@ -158,14 +188,19 @@ type alias PieceInstance =
     { piece : Piece, coordinate : Coordinate }
 
 
-type PieceColor
+type Color
     = Yellow
     | Blue
+    | Red
+    | Green
+    | Purple
+    | Cyan
+    | Orange
 
 
 type alias PieceSpec =
     { layout : PieceLayout
-    , color : PieceColor
+    , color : Color
     }
 
 
@@ -215,6 +250,13 @@ longOneLayout =
     ]
 
 
+longOnePieceSpec : PieceSpec
+longOnePieceSpec =
+    { color = Cyan
+    , layout = longOneLayout
+    }
+
+
 leftNoodleLayout : PieceLayout
 leftNoodleLayout =
     [ [ NotFilled, NotFilled, NotFilled, NotFilled ]
@@ -222,6 +264,13 @@ leftNoodleLayout =
     , [ NotFilled, Filled, Filled, NotFilled ]
     , [ NotFilled, NotFilled, Filled, NotFilled ]
     ]
+
+
+leftNoodlePieceSpec : PieceSpec
+leftNoodlePieceSpec =
+    { color = Red
+    , layout = leftNoodleLayout
+    }
 
 
 rightNoodleLayout : PieceLayout
@@ -233,6 +282,13 @@ rightNoodleLayout =
     ]
 
 
+rightNoodlePieceSpec : PieceSpec
+rightNoodlePieceSpec =
+    { color = Green
+    , layout = rightNoodleLayout
+    }
+
+
 leftHookLayout : PieceLayout
 leftHookLayout =
     [ [ NotFilled, NotFilled, NotFilled, NotFilled ]
@@ -240,6 +296,13 @@ leftHookLayout =
     , [ NotFilled, NotFilled, Filled, NotFilled ]
     , [ NotFilled, NotFilled, Filled, NotFilled ]
     ]
+
+
+leftHookPieceSpec : PieceSpec
+leftHookPieceSpec =
+    { color = Blue
+    , layout = leftHookLayout
+    }
 
 
 rightHookLayout : PieceLayout
@@ -251,6 +314,13 @@ rightHookLayout =
     ]
 
 
+rightHookPieceSpec : PieceSpec
+rightHookPieceSpec =
+    { color = Orange
+    , layout = rightHookLayout
+    }
+
+
 triGuyLayout : PieceLayout
 triGuyLayout =
     [ [ NotFilled, NotFilled, NotFilled, NotFilled ]
@@ -258,6 +328,13 @@ triGuyLayout =
     , [ NotFilled, NotFilled, Filled, NotFilled ]
     , [ NotFilled, Filled, Filled, Filled ]
     ]
+
+
+triGuyPieceSpec : PieceSpec
+triGuyPieceSpec =
+    { color = Purple
+    , layout = triGuyLayout
+    }
 
 
 squashCellState rowIndex ( index, cell ) =
@@ -294,7 +371,7 @@ renderPiece coordinate { layout, color } =
         |> renderGrid coordinate color
 
 
-renderGrid : Coordinate -> PieceColor -> Grid -> Html Msg
+renderGrid : Coordinate -> Color -> Grid -> Html Msg
 renderGrid coordinate color grid =
     div []
         (List.map
@@ -315,14 +392,29 @@ toPixels integer =
         string ++ "px"
 
 
-pieceColorCode : PieceColor -> String
+pieceColorCode : Color -> String
 pieceColorCode color =
     case color of
         Yellow ->
             "yellow"
 
-        other_ ->
-            "white"
+        Blue ->
+            "blue"
+
+        Red ->
+            "red"
+
+        Green ->
+            "green"
+
+        Purple ->
+            "purple"
+
+        Cyan ->
+            "cyan"
+
+        Orange ->
+            "orange"
 
 
 squareStyle ( xCoordinate, yCoordinate ) color columnIndex rowIndex =
