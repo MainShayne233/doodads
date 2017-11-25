@@ -1,9 +1,10 @@
 module Main exposing (..)
 
+import Time exposing (Time, every, millisecond)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (..)
 import Keyboard.Extra exposing (Key)
+import AnimationFrame
 
 
 ---- MODEL ----
@@ -11,24 +12,25 @@ import Keyboard.Extra exposing (Key)
 
 type alias Model =
     { pieceInstances : List PieceInstance
+    , timeSinceLastMove : Time
+    , timePerMove : Time
     }
 
 
 initPieceInstances : List PieceInstance
 initPieceInstances =
-    [ { piece = FourSquare, coordinate = ( 0, 0 ) }
-    , { piece = LongOne, coordinate = ( 3, 1 ) }
-    , { piece = LeftNoodle, coordinate = ( 0, 3 ) }
-    , { piece = RightNoodle, coordinate = ( 5, 0 ) }
-    , { piece = LeftHook, coordinate = ( 7, 3 ) }
-    , { piece = RightHook, coordinate = ( 3, 5 ) }
-    , { piece = TriGuy, coordinate = ( 5, 5 ) }
+    [ { pieceSpec = pieceSpec TriGuy, coordinate = ( 13, 2 ) }
     ]
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { pieceInstances = initPieceInstances }, Cmd.none )
+    ( { pieceInstances = initPieceInstances
+      , timeSinceLastMove = 0
+      , timePerMove = 1000
+      }
+    , Cmd.none
+    )
 
 
 
@@ -37,7 +39,9 @@ init =
 
 type Msg
     = Change String
+    | TimeUpdate Time
     | KeyDown Key
+    | Move
     | NoOp
 
 
@@ -51,8 +55,104 @@ update msg model =
             in
                 ( updatedModel, Cmd.none )
 
+        TimeUpdate time ->
+            let
+                { timeSinceLastMove, timePerMove, pieceInstances } =
+                    model
+
+                newTimeSinceLastMove =
+                    timeSinceLastMove + time
+
+                ( updatedTimeSinceLastMove, newPieceInstances ) =
+                    if newTimeSinceLastMove > timePerMove then
+                        ( 0, executeMove pieceInstances )
+                    else
+                        ( newTimeSinceLastMove, pieceInstances )
+
+                updatedPieceInstances =
+                    detectCollisions newPieceInstances
+            in
+                ( { model
+                    | timeSinceLastMove = updatedTimeSinceLastMove
+                    , pieceInstances = updatedPieceInstances
+                  }
+                , Cmd.none
+                )
+
         other ->
             ( model, Cmd.none )
+
+
+detectCollisions : List PieceInstance -> List PieceInstance
+detectCollisions pieceInstances =
+    case pieceInstances of
+        [] ->
+            []
+
+        activePiece :: restOfPieces ->
+            let
+                activePieceGrid =
+                    layoutToGrid activePiece.pieceSpec.layout
+
+                isCollision =
+                    checkForCollisions activePieceGrid restOfPieces
+            in
+                case isCollision of
+                    True ->
+                        { pieceSpec = pieceSpec FourSquare, coordinate = ( 13, 1 ) } :: activePiece :: restOfPieces
+
+                    False ->
+                        activePiece :: restOfPieces
+
+
+checkForCollisions : Grid -> List PieceInstance -> Bool
+checkForCollisions grid pieceInstances =
+    if (List.any coordianteTouchesFloor grid) then
+        True
+    else
+        List.any (piecesCollide grid) pieceInstances
+
+
+piecesCollide : Grid -> PieceInstance -> Bool
+piecesCollide grid { pieceSpec } =
+    pieceSpec.layout
+        |> layoutToGrid
+        |> List.any (hasCoordinate grid)
+
+
+hasCoordinate : Grid -> Coordinate -> Bool
+hasCoordinate grid coordinate =
+    List.member coordinate grid
+
+
+coordianteTouchesFloor : Coordinate -> Bool
+coordianteTouchesFloor ( xCoordinate, yCoordinate ) =
+    yCoordinate >= 10
+
+
+containsCoordinate : Grid -> Coordinate -> Bool
+containsCoordinate grid coordinate =
+    List.member coordinate grid
+
+
+executeMove : List PieceInstance -> List PieceInstance
+executeMove pieceInstances =
+    case pieceInstances of
+        [] ->
+            []
+
+        activePiece :: restOfPieces ->
+            let
+                ( xCoordinate, yCoordinate ) =
+                    activePiece.coordinate
+
+                updatedYCoordinate =
+                    yCoordinate + 1
+
+                updatedActivePiece =
+                    { activePiece | coordinate = ( xCoordinate, updatedYCoordinate ) }
+            in
+                updatedActivePiece :: restOfPieces
 
 
 type MoveDirection
@@ -135,9 +235,8 @@ renderPieceInstances instances =
 
 
 renderPieceInstance : PieceInstance -> Html Msg
-renderPieceInstance { piece, coordinate } =
-    piece
-        |> pieceSpec
+renderPieceInstance { pieceSpec, coordinate } =
+    pieceSpec
         |> renderPiece coordinate
 
 
@@ -185,7 +284,7 @@ type Piece
 
 
 type alias PieceInstance =
-    { piece : Piece, coordinate : Coordinate }
+    { pieceSpec : PieceSpec, coordinate : Coordinate }
 
 
 type Color
@@ -428,6 +527,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Keyboard.Extra.downs KeyDown
+        , AnimationFrame.diffs TimeUpdate
         ]
 
 
