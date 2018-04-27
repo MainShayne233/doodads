@@ -19,7 +19,7 @@ type alias Model =
 
 initPieceInstances : List PieceInstance
 initPieceInstances =
-    [ { pieceSpec = pieceSpec TriGuy, coordinate = ( 13, 2 ) }
+    [ { pieceGrid = triGuyGrid, coordinate = ( 13, 2 ), color = Green }
     ]
 
 
@@ -85,54 +85,51 @@ update msg model =
 
 detectCollisions : List PieceInstance -> List PieceInstance
 detectCollisions pieceInstances =
-    case pieceInstances of
-        [] ->
-            []
-
-        activePiece :: restOfPieces ->
-            let
-                activePieceGrid =
-                    layoutToGrid activePiece.pieceSpec.layout
-
-                isCollision =
-                    checkForCollisions activePieceGrid restOfPieces
-            in
-                case isCollision of
-                    True ->
-                        { pieceSpec = pieceSpec FourSquare, coordinate = ( 13, 1 ) } :: activePiece :: restOfPieces
-
-                    False ->
-                        activePiece :: restOfPieces
+    pieceInstances
 
 
-checkForCollisions : Grid -> List PieceInstance -> Bool
-checkForCollisions grid pieceInstances =
-    if (List.any coordianteTouchesFloor grid) then
-        True
-    else
-        List.any (piecesCollide grid) pieceInstances
 
-
-piecesCollide : Grid -> PieceInstance -> Bool
-piecesCollide grid { pieceSpec } =
-    pieceSpec.layout
-        |> layoutToGrid
-        |> List.any (hasCoordinate grid)
-
-
-hasCoordinate : Grid -> Coordinate -> Bool
-hasCoordinate grid coordinate =
-    List.member coordinate grid
-
-
-coordianteTouchesFloor : Coordinate -> Bool
-coordianteTouchesFloor ( xCoordinate, yCoordinate ) =
-    yCoordinate >= 10
-
-
-containsCoordinate : Grid -> Coordinate -> Bool
-containsCoordinate grid coordinate =
-    List.member coordinate grid
+--    case pieceInstances of
+--        [] ->
+--            []
+--
+--        activePieceInstance :: restOfPieceInstances ->
+--            let
+--                isCollision =
+--                    checkForCollisions activePieceInstance.pieceGrid restOfPieceInstances
+--            in
+--                case isCollision of
+--                    True ->
+--                        { pieceSpec = pieceSpec FourSquare, coordinate = ( 13, 1 ) } :: activePiece :: restOfPieces
+--
+--                    False ->
+--                        activePiece :: restOfPieces
+--checkForCollisions : Grid -> List PieceInstance -> Bool
+--checkForCollisions grid pieceInstances =
+--    if (List.any coordianteTouchesFloor grid) then
+--        True
+--    else
+--        List.any (piecesCollide grid) pieceInstances
+--piecesCollide : Grid -> PieceInstance -> Bool
+--piecesCollide grid { pieceSpec } =
+--    pieceSpec.layout
+--        |> layoutToGrid
+--        |> List.any (hasCoordinate grid)
+--
+--
+--hasCoordinate : Grid -> Coordinate -> Bool
+--hasCoordinate grid coordinate =
+--    List.member coordinate grid
+--
+--
+--coordianteTouchesFloor : Coordinate -> Bool
+--coordianteTouchesFloor ( xCoordinate, yCoordinate ) =
+--    yCoordinate >= 10
+--
+--
+--containsCoordinate : Grid -> Coordinate -> Bool
+--containsCoordinate grid coordinate =
+--    List.member coordinate grid
 
 
 executeMove : List PieceInstance -> List PieceInstance
@@ -234,37 +231,6 @@ renderPieceInstances instances =
     List.map renderPieceInstance instances
 
 
-renderPieceInstance : PieceInstance -> Html Msg
-renderPieceInstance { pieceSpec, coordinate } =
-    pieceSpec
-        |> renderPiece coordinate
-
-
-pieceSpec : Piece -> PieceSpec
-pieceSpec piece =
-    case piece of
-        FourSquare ->
-            fourSquarePieceSpec
-
-        LongOne ->
-            longOnePieceSpec
-
-        LeftNoodle ->
-            leftNoodlePieceSpec
-
-        RightNoodle ->
-            rightNoodlePieceSpec
-
-        LeftHook ->
-            leftHookPieceSpec
-
-        RightHook ->
-            rightHookPieceSpec
-
-        TriGuy ->
-            triGuyPieceSpec
-
-
 type Piece
     = FourSquare
     | LongOne
@@ -284,7 +250,7 @@ type Piece
 
 
 type alias PieceInstance =
-    { pieceSpec : PieceSpec, coordinate : Coordinate }
+    { pieceGrid : PieceGrid, coordinate : Coordinate, color : Color }
 
 
 type Color
@@ -308,6 +274,14 @@ type CellState
     | NotFilled
 
 
+type alias PieceRow =
+    ( CellState, CellState, CellState, CellState )
+
+
+type alias PieceGrid =
+    ( PieceRow, PieceRow, PieceRow, PieceRow )
+
+
 type alias Row =
     List CellState
 
@@ -324,116 +298,67 @@ type alias Grid =
     List Coordinate
 
 
-fourSquareLayout : PieceLayout
-fourSquareLayout =
-    [ [ NotFilled, NotFilled, NotFilled, NotFilled ]
-    , [ NotFilled, Filled, Filled, NotFilled ]
-    , [ NotFilled, Filled, Filled, NotFilled ]
-    , [ NotFilled, NotFilled, NotFilled, NotFilled ]
-    ]
+fourSquareGrid : PieceGrid
+fourSquareGrid =
+    ( ( NotFilled, NotFilled, NotFilled, NotFilled )
+    , ( NotFilled, Filled, Filled, NotFilled )
+    , ( NotFilled, Filled, Filled, NotFilled )
+    , ( NotFilled, NotFilled, NotFilled, NotFilled )
+    )
 
 
-fourSquarePieceSpec : PieceSpec
-fourSquarePieceSpec =
-    { color = Yellow
-    , layout = fourSquareLayout
-    }
+longOneGrid : PieceGrid
+longOneGrid =
+    ( ( NotFilled, Filled, NotFilled, NotFilled )
+    , ( NotFilled, Filled, NotFilled, NotFilled )
+    , ( NotFilled, Filled, NotFilled, NotFilled )
+    , ( NotFilled, Filled, NotFilled, NotFilled )
+    )
 
 
-longOneLayout : PieceLayout
-longOneLayout =
-    [ [ NotFilled, Filled, NotFilled, NotFilled ]
-    , [ NotFilled, Filled, NotFilled, NotFilled ]
-    , [ NotFilled, Filled, NotFilled, NotFilled ]
-    , [ NotFilled, Filled, NotFilled, NotFilled ]
-    ]
+leftNoodleGrid : PieceGrid
+leftNoodleGrid =
+    ( ( NotFilled, NotFilled, NotFilled, NotFilled )
+    , ( NotFilled, Filled, NotFilled, NotFilled )
+    , ( NotFilled, Filled, Filled, NotFilled )
+    , ( NotFilled, NotFilled, Filled, NotFilled )
+    )
 
 
-longOnePieceSpec : PieceSpec
-longOnePieceSpec =
-    { color = Cyan
-    , layout = longOneLayout
-    }
+rightNoodleGrid : PieceGrid
+rightNoodleGrid =
+    ( ( NotFilled, NotFilled, NotFilled, NotFilled )
+    , ( NotFilled, NotFilled, Filled, NotFilled )
+    , ( NotFilled, Filled, Filled, NotFilled )
+    , ( NotFilled, Filled, NotFilled, NotFilled )
+    )
 
 
-leftNoodleLayout : PieceLayout
-leftNoodleLayout =
-    [ [ NotFilled, NotFilled, NotFilled, NotFilled ]
-    , [ NotFilled, Filled, NotFilled, NotFilled ]
-    , [ NotFilled, Filled, Filled, NotFilled ]
-    , [ NotFilled, NotFilled, Filled, NotFilled ]
-    ]
+leftHookGrid : PieceGrid
+leftHookGrid =
+    ( ( NotFilled, NotFilled, NotFilled, NotFilled )
+    , ( NotFilled, Filled, Filled, NotFilled )
+    , ( NotFilled, NotFilled, Filled, NotFilled )
+    , ( NotFilled, NotFilled, Filled, NotFilled )
+    )
 
 
-leftNoodlePieceSpec : PieceSpec
-leftNoodlePieceSpec =
-    { color = Red
-    , layout = leftNoodleLayout
-    }
+rightHookGrid : PieceGrid
+rightHookGrid =
+    ( ( NotFilled, NotFilled, NotFilled, NotFilled )
+    , ( NotFilled, Filled, Filled, NotFilled )
+    , ( NotFilled, Filled, NotFilled, NotFilled )
+    , ( NotFilled, Filled, NotFilled, NotFilled )
+    )
 
 
-rightNoodleLayout : PieceLayout
-rightNoodleLayout =
-    [ [ NotFilled, NotFilled, NotFilled, NotFilled ]
-    , [ NotFilled, NotFilled, Filled, NotFilled ]
-    , [ NotFilled, Filled, Filled, NotFilled ]
-    , [ NotFilled, Filled, NotFilled, NotFilled ]
-    ]
-
-
-rightNoodlePieceSpec : PieceSpec
-rightNoodlePieceSpec =
-    { color = Green
-    , layout = rightNoodleLayout
-    }
-
-
-leftHookLayout : PieceLayout
-leftHookLayout =
-    [ [ NotFilled, NotFilled, NotFilled, NotFilled ]
-    , [ NotFilled, Filled, Filled, NotFilled ]
-    , [ NotFilled, NotFilled, Filled, NotFilled ]
-    , [ NotFilled, NotFilled, Filled, NotFilled ]
-    ]
-
-
-leftHookPieceSpec : PieceSpec
-leftHookPieceSpec =
-    { color = Blue
-    , layout = leftHookLayout
-    }
-
-
-rightHookLayout : PieceLayout
-rightHookLayout =
-    [ [ NotFilled, NotFilled, NotFilled, NotFilled ]
-    , [ NotFilled, Filled, Filled, NotFilled ]
-    , [ NotFilled, Filled, NotFilled, NotFilled ]
-    , [ NotFilled, Filled, NotFilled, NotFilled ]
-    ]
-
-
-rightHookPieceSpec : PieceSpec
-rightHookPieceSpec =
-    { color = Orange
-    , layout = rightHookLayout
-    }
-
-
-triGuyLayout : PieceLayout
-triGuyLayout =
-    [ [ NotFilled, NotFilled, NotFilled, NotFilled ]
-    , [ NotFilled, NotFilled, NotFilled, NotFilled ]
-    , [ NotFilled, NotFilled, Filled, NotFilled ]
-    , [ NotFilled, Filled, Filled, Filled ]
-    ]
-
-
-triGuyPieceSpec : PieceSpec
-triGuyPieceSpec =
-    { color = Purple
-    , layout = triGuyLayout
-    }
+triGuyGrid : PieceGrid
+triGuyGrid =
+    ( ( NotFilled, NotFilled, NotFilled, NotFilled )
+    , ( NotFilled, NotFilled, NotFilled, NotFilled )
+    , ( NotFilled, NotFilled, Filled, NotFilled )
+    , ( NotFilled, Filled, Filled, Filled )
+    )
 
 
 squashCellState rowIndex ( index, cell ) =
@@ -456,6 +381,13 @@ flattenRow ( rowIndex, row ) =
         |> List.map coordinatize
 
 
+gridToCoordinateList pieceGrid =
+    pieceGrid
+        |> pieceGridTo2DList
+        |> List.indexedMap (,)
+        |> List.concatMap flattenRow
+
+
 layoutToGrid : PieceLayout -> Grid
 layoutToGrid layout =
     layout
@@ -463,20 +395,25 @@ layoutToGrid layout =
         |> List.concatMap flattenRow
 
 
-renderPiece : Coordinate -> PieceSpec -> Html Msg
-renderPiece coordinate { layout, color } =
-    layout
-        |> layoutToGrid
-        |> renderGrid coordinate color
+pieceRowToList ( cellState1, cellState2, cellState3, cellState4 ) =
+    [ cellState1, cellState2, cellState3, cellState4 ]
 
 
-renderGrid : Coordinate -> Color -> Grid -> Html Msg
-renderGrid coordinate color grid =
-    div []
-        (List.map
-            (renderSquare coordinate color)
-            grid
-        )
+pieceGridTo2DList ( pieceRow1, pieceRow2, pieceRow3, pieceRow4 ) =
+    List.map pieceRowToList [ pieceRow1, pieceRow2, pieceRow3, pieceRow4 ]
+
+
+renderPieceInstance : PieceInstance -> Html Msg
+renderPieceInstance { pieceGrid, coordinate, color } =
+    let
+        pieceCoordinateList =
+            gridToCoordinateList pieceGrid
+    in
+        div []
+            (List.map
+                (renderSquare coordinate color)
+                pieceCoordinateList
+            )
 
 
 renderSquare coordinate color ( rowIndex, columnIndex ) =
