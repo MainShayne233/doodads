@@ -88,50 +88,6 @@ detectCollisions pieceInstances =
     pieceInstances
 
 
-
---    case pieceInstances of
---        [] ->
---            []
---
---        activePieceInstance :: restOfPieceInstances ->
---            let
---                isCollision =
---                    checkForCollisions activePieceInstance.pieceGrid restOfPieceInstances
---            in
---                case isCollision of
---                    True ->
---                        { pieceSpec = pieceSpec FourSquare, coordinate = ( 13, 1 ) } :: activePiece :: restOfPieces
---
---                    False ->
---                        activePiece :: restOfPieces
---checkForCollisions : Grid -> List PieceInstance -> Bool
---checkForCollisions grid pieceInstances =
---    if (List.any coordianteTouchesFloor grid) then
---        True
---    else
---        List.any (piecesCollide grid) pieceInstances
---piecesCollide : Grid -> PieceInstance -> Bool
---piecesCollide grid { pieceSpec } =
---    pieceSpec.layout
---        |> layoutToGrid
---        |> List.any (hasCoordinate grid)
---
---
---hasCoordinate : Grid -> Coordinate -> Bool
---hasCoordinate grid coordinate =
---    List.member coordinate grid
---
---
---coordianteTouchesFloor : Coordinate -> Bool
---coordianteTouchesFloor ( xCoordinate, yCoordinate ) =
---    yCoordinate >= 10
---
---
---containsCoordinate : Grid -> Coordinate -> Bool
---containsCoordinate grid coordinate =
---    List.member coordinate grid
-
-
 executeMove : List PieceInstance -> List PieceInstance
 executeMove pieceInstances =
     case pieceInstances of
@@ -178,6 +134,22 @@ movePieceInstance direction pieceInstance =
         { pieceInstance | coordinate = updatedCoordinate }
 
 
+directionForKeyPress : Key -> Maybe MoveDirection
+directionForKeyPress key =
+    case key of
+        Keyboard.Extra.CharA ->
+            Just Left
+
+        Keyboard.Extra.CharD ->
+            Just Right
+
+        Keyboard.Extra.CharS ->
+            Just Down
+
+        other_ ->
+            Nothing
+
+
 handleKeyPress : Key -> Model -> Model
 handleKeyPress key model =
     case model.pieceInstances of
@@ -185,29 +157,15 @@ handleKeyPress key model =
             model
 
         activePieceInstance :: inactivePieceInstances ->
-            case key of
-                Keyboard.Extra.CharA ->
+            case directionForKeyPress key of
+                Just direction ->
                     let
                         movedPieceInstance =
-                            movePieceInstance Left activePieceInstance
+                            movePieceInstance direction activePieceInstance
                     in
                         { model | pieceInstances = movedPieceInstance :: inactivePieceInstances }
 
-                Keyboard.Extra.CharD ->
-                    let
-                        movedPieceInstance =
-                            movePieceInstance Right activePieceInstance
-                    in
-                        { model | pieceInstances = movedPieceInstance :: inactivePieceInstances }
-
-                Keyboard.Extra.CharS ->
-                    let
-                        movedPieceInstance =
-                            movePieceInstance Down activePieceInstance
-                    in
-                        { model | pieceInstances = movedPieceInstance :: inactivePieceInstances }
-
-                other_ ->
+                Nothing ->
                     model
 
 
@@ -241,14 +199,6 @@ type Piece
     | TriGuy
 
 
-
---    | LeftNoodle
---    | RightNoodle
---    | LeftHook
---    | RightHook
---    | TriGuy
-
-
 type alias PieceInstance =
     { pieceGrid : PieceGrid, coordinate : Coordinate, color : Color }
 
@@ -261,12 +211,6 @@ type Color
     | Purple
     | Cyan
     | Orange
-
-
-type alias PieceSpec =
-    { layout : PieceLayout
-    , color : Color
-    }
 
 
 type CellState
@@ -282,20 +226,8 @@ type alias PieceGrid =
     ( PieceRow, PieceRow, PieceRow, PieceRow )
 
 
-type alias Row =
-    List CellState
-
-
-type alias PieceLayout =
-    List Row
-
-
 type alias Coordinate =
     ( Int, Int )
-
-
-type alias Grid =
-    List Coordinate
 
 
 fourSquareGrid : PieceGrid
@@ -381,16 +313,10 @@ flattenRow ( rowIndex, row ) =
         |> List.map coordinatize
 
 
+gridToCoordinateList : PieceGrid -> List ( Int, Int )
 gridToCoordinateList pieceGrid =
     pieceGrid
         |> pieceGridTo2DList
-        |> List.indexedMap (,)
-        |> List.concatMap flattenRow
-
-
-layoutToGrid : PieceLayout -> Grid
-layoutToGrid layout =
-    layout
         |> List.indexedMap (,)
         |> List.concatMap flattenRow
 
